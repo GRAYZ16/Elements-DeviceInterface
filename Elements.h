@@ -25,6 +25,7 @@ class ElementsProtocol
   
 };
 
+void MQTT_connect(Adafruit_MQTT_Client *mqtt);
 
 
 
