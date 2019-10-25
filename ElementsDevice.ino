@@ -25,30 +25,35 @@ Adafruit_MQTT_Client mqtt(&client, MQTT_SERVER, MQTT_PORT, MQTT_USER, MQTT_PASS)
 #define DEVICE_DESC "Example Temp/Humidity Device"
 #define DEVICE_NO_OF_SENSORS 2
 
+ElementsProtocol protocol(WiFi.macAddress(), DEVICE_NAME, DEVICE_DESC, DEVICE_NO_OF_SENSORS, &mqtt);
+
 
 void setup() 
 {
   Serial.begin(9600);
   while(!Serial);
-
-  String deviceName = DEVICE_NAME;
-  String deviceDesc = DEVICE_DESC;
-  uint8_t deviceNoOfSensors = DEVICE_NO_OF_SENSORS;
   
   delay(500);  
 
   Serial.println();
-  ElementsProtocol protocol(WiFi.macAddress(), deviceName, deviceDesc, deviceNoOfSensors, &mqtt);
+  
   while(!protocol.connectedToServer)
   {
     protocol.connectToServer();
-    Serial.println("Connected");
-  }
+  }  
+  Serial.println("Connected");
 
 }
 
 void loop() 
 {
   MQTT_connect(&mqtt);
+  float test[2];
 
+  test[0] = random(100);
+  test[1] = random(100);
+
+  protocol.transmitData(test, 2);
+
+  delay(5000);
 }
