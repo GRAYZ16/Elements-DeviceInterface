@@ -10,18 +10,20 @@ ElementsProtocol::ElementsProtocol(String deviceMAC, String deviceName, String d
   _deviceMAC = deviceMAC;
   _deviceName = deviceName;
   _deviceDesc = deviceDesc;
-  _deviceNoOfSensors= deviceNoOfSensors;
-  _mqtt = mqttserver;
+  _deviceNoOfSensors= deviceNoOfSensors;   
+  _mqtt = mqttserver;  
+  
+  _tx = new Adafruit_MQTT_Publish(_mqtt, _deviceMAC.c_str());
+  _rx = new Adafruit_MQTT_Subscribe(_mqtt, _deviceMAC.c_str());
+  _mqtt->subscribe(_rx);
+    
   connectedToServer = false;
 }
 
 void ElementsProtocol::connectToServer()
 {  
-  Adafruit_MQTT_Publish tx = Adafruit_MQTT_Publish(_mqtt, "new_devices");
-  Adafruit_MQTT_Subscribe rx = Adafruit_MQTT_Subscribe(_mqtt, _deviceMAC.c_str());
-
-  _mqtt->subscribe(&rx);
-
+  Adafruit_MQTT_Publish initTx = Adafruit_MQTT_Publish(_mqtt, "new_devices");
+  
   MQTT_connect(_mqtt);
   
   JSONVar initHandshake;
@@ -33,7 +35,7 @@ void ElementsProtocol::connectToServer()
   Serial.println("First Handshake JSON");  
   Serial.println(JSON.stringify(initHandshake));
 
-  if(!tx.publish(JSON.stringify(initHandshake).c_str()))
+  if(!initTx.publish(JSON.stringify(initHandshake).c_str()))
   {
     Serial.println("Transmission Failed");
   }
@@ -48,10 +50,10 @@ void ElementsProtocol::connectToServer()
   {
     Serial.println("runs");
     
-    if(subscription == &rx)
+    if(subscription == _rx)
     {
       Serial.println("RECV:");
-      char* response = (char*)rx.lastread;
+      char* response = (char*)_rx->lastread;
       Serial.println(response);
 
       JSONVar jsonResponse = JSON.parse(response);
@@ -65,6 +67,30 @@ void ElementsProtocol::connectToServer()
         connectedToServer = false;
       }
     }
+  }
+}
+
+void ElementsProtocol::transmitData(float *data, int len)
+{
+  MQTT_connect(_mqtt);
+  JSONVar dataArray;
+
+  for(int i=0; i < len; i++)
+  {
+    dataArray[i] = data[i];
+  }
+
+  JSONVar txFrame;
+  txFrame["deviceMAC"] = _deviceMAC;
+  txFrame["data"] = dataArray;
+  
+  if(!_tx->publish(JSON.stringify(txFrame).c_str()))
+  {
+    Serial.println("Transmission Failed");
+  }
+  else
+  {
+    Serial.println("Transmission Success");
   }
 }
 

@@ -22,7 +22,8 @@ class ElementsProtocol
     String _deviceName;
     String _deviceDesc;
     uint8_t _deviceNoOfSensors;
-  
+    Adafruit_MQTT_Publish* _tx;
+    Adafruit_MQTT_Subscribe* _rx;
 };
 
 void MQTT_connect(Adafruit_MQTT_Client *mqtt);
