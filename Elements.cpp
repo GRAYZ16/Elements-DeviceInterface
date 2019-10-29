@@ -1,9 +1,12 @@
+#define DEBUG 1
+
 #include "Arduino.h"
 #include "Elements.h"
 #include "Adafruit_MQTT.h"
 #include "Adafruit_MQTT_Client.h"
 #include "Arduino_JSON.h"
 #include "ESP8266WiFi.h"
+
 
 ElementsProtocol::ElementsProtocol(String deviceMAC, String deviceName, String deviceDesc, uint8_t deviceNoOfSensors, Adafruit_MQTT_Client *mqttserver)
 {
@@ -32,29 +35,35 @@ void ElementsProtocol::connectToServer()
   initHandshake["deviceName"] = _deviceName;
   initHandshake["deviceDesc"] = _deviceDesc;
   initHandshake["deviceNoOfSensors"] = _deviceNoOfSensors;
-  Serial.println("First Handshake JSON");  
-  Serial.println(JSON.stringify(initHandshake));
+
+  if(Serial && DEBUG)
+  {
+    Serial.println("Initial Handshake JSON:");  
+    Serial.println(JSON.stringify(initHandshake));
+  }
 
   if(!initTx.publish(JSON.stringify(initHandshake).c_str()))
   {
-    Serial.println("Transmission Failed");
+    if(Serial && DEBUG) Serial.println("Initial Handshake Failed to Transmit");
   }
   else
   {
-    Serial.println("Transmission Success");
+    if(Serial && DEBUG) Serial.println("Initial Handshake Transmission Success");
   }
 
   Adafruit_MQTT_Subscribe *subscription;
 
   while((subscription = _mqtt->readSubscription(10000)))
-  {
-    Serial.println("runs");
-    
+  {    
     if(subscription == _rx)
     {
-      Serial.println("RECV:");
       char* response = (char*)_rx->lastread;
-      Serial.println(response);
+
+      if(Serial && DEBUG)
+      {
+        Serial.println("Server Response:");
+        Serial.println(response);
+      }
 
       JSONVar jsonResponse = JSON.parse(response);
 
@@ -86,14 +95,15 @@ void ElementsProtocol::transmitData(float *data, int len)
   
   if(!_tx->publish(JSON.stringify(txFrame).c_str()))
   {
-    Serial.println("Transmission Failed");
+    if(Serial && DEBUG) Serial.println("Transmission Failed");
   }
   else
   {
-    Serial.println("Transmission Success");
+    if(Serial && DEBUG) Serial.println("Transmission Success");
   }
 }
 
+// MQTT connection function writen by Adafruit for creating MQTT connections
 void MQTT_connect(Adafruit_MQTT_Client *mqtt) 
 {
   int8_t ret;
